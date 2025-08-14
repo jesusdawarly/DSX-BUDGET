@@ -11,7 +11,6 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import {
   CheckCircle,
-  Calculator,
   MessageCircle,
   Calendar,
   Download,
@@ -56,7 +55,156 @@ const trackEvent = (eventName: string, properties?: Record<string, any>) => {
   }
 }
 
-export default function LandingPage() {
+const LeadCaptureForm = ({
+  showLeadForm,
+  setShowLeadForm,
+  formSubmitted,
+  leadFormData,
+  setLeadFormData,
+  handleLeadFormSubmit,
+  isSubmitting,
+  submitError,
+}: {
+  showLeadForm: boolean
+  setShowLeadForm: (show: boolean) => void
+  formSubmitted: boolean
+  leadFormData: any
+  setLeadFormData: (data: any) => void
+  handleLeadFormSubmit: (e: React.FormEvent) => void
+  isSubmitting: boolean
+  submitError: string | null
+}) => (
+  <Dialog open={showLeadForm} onOpenChange={setShowLeadForm}>
+    <DialogContent className="max-w-md bg-background border-border">
+      <DialogHeader>
+        <DialogTitle className="text-foreground font-[family-name:var(--font-heading)]">
+          {formSubmitted ? "Thank You!" : "Get Started with DSX"}
+        </DialogTitle>
+      </DialogHeader>
+
+      {formSubmitted ? (
+        <div className="text-center space-y-4 py-8">
+          <CheckCircle className="h-16 w-16 text-primary mx-auto" />
+          <p className="text-muted-foreground">
+            We've received your information and will contact you within 24 hours to schedule your consultation.
+          </p>
+          <div className="text-sm text-muted-foreground">
+            A confirmation email has been sent to {leadFormData.email}
+          </div>
+        </div>
+      ) : (
+        <form onSubmit={handleLeadFormSubmit} className="space-y-4">
+          {submitError && (
+            <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+              <p className="text-sm text-destructive">{submitError}</p>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label htmlFor="name" className="text-foreground">
+              Full Name *
+            </Label>
+            <Input
+              id="name"
+              required
+              disabled={isSubmitting}
+              value={leadFormData.name}
+              onChange={(e) => setLeadFormData({ ...leadFormData, name: e.target.value })}
+              className="bg-background border-border text-foreground disabled:opacity-50"
+              placeholder="Your full name"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="email" className="text-foreground">
+              Email Address *
+            </Label>
+            <Input
+              id="email"
+              type="email"
+              required
+              disabled={isSubmitting}
+              value={leadFormData.email}
+              onChange={(e) => setLeadFormData({ ...leadFormData, email: e.target.value })}
+              className="bg-background border-border text-foreground disabled:opacity-50"
+              placeholder="your@email.com"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="organization" className="text-foreground">
+              Organization Name *
+            </Label>
+            <Input
+              id="organization"
+              required
+              disabled={isSubmitting}
+              value={leadFormData.organization}
+              onChange={(e) => setLeadFormData({ ...leadFormData, organization: e.target.value })}
+              className="bg-background border-border text-foreground disabled:opacity-50"
+              placeholder="Your organization"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="organizationType" className="text-foreground">
+              Organization Type *
+            </Label>
+            <select
+              id="organizationType"
+              required
+              disabled={isSubmitting}
+              value={leadFormData.organizationType}
+              onChange={(e) => setLeadFormData({ ...leadFormData, organizationType: e.target.value })}
+              className="w-full px-3 py-2 bg-background border border-border rounded-md text-foreground disabled:opacity-50"
+            >
+              <option value="">Select type</option>
+              <option value="corporate">Corporate/Business</option>
+              <option value="ngo">NGO/Non-Profit</option>
+              <option value="government">Government/Public Sector</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="message" className="text-foreground">
+              Message (Optional)
+            </Label>
+            <Textarea
+              id="message"
+              disabled={isSubmitting}
+              value={leadFormData.message}
+              onChange={(e) => setLeadFormData({ ...leadFormData, message: e.target.value })}
+              className="bg-background border-border text-foreground disabled:opacity-50"
+              placeholder="Tell us about your budget management needs..."
+              rows={3}
+            />
+          </div>
+
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold disabled:opacity-50"
+          >
+            {isSubmitting ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground mr-2"></div>
+                Sending...
+              </>
+            ) : (
+              <>
+                <Send className="h-4 w-4 mr-2" />
+                Send Information Request
+              </>
+            )}
+          </Button>
+        </form>
+      )}
+    </DialogContent>
+  </Dialog>
+)
+
+export default function DSXLandingPage() {
   const [selectedExample, setSelectedExample] = useState<string | null>(null)
   const [leadFormData, setLeadFormData] = useState({
     name: "",
@@ -90,37 +238,22 @@ export default function LandingPage() {
     })
 
     try {
-      // Simulate API call with realistic delay
-      await new Promise((resolve, reject) => {
-        setTimeout(
-          () => {
-            // Simulate occasional failures for realism (5% failure rate)
-            if (Math.random() < 0.05) {
-              reject(new Error("Network error. Please try again."))
-            } else {
-              resolve(true)
-            }
-          },
-          1500 + Math.random() * 1000,
-        ) // 1.5-2.5 second delay
+      const response = await fetch("/api/send-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(leadFormData),
       })
 
-      // Simulate sending email notification
-      const emailData = {
-        to: "contact@dsx-budget.com",
-        subject: `New Lead: ${leadFormData.name} from ${leadFormData.organization}`,
-        body: `
-          New lead submission:
-          
-          Name: ${leadFormData.name}
-          Email: ${leadFormData.email}
-          Organization: ${leadFormData.organization}
-          Type: ${leadFormData.organizationType}
-          Message: ${leadFormData.message || "No message provided"}
-          
-          Submitted at: ${new Date().toLocaleString()}
-        `,
-        leadData: leadFormData,
+      if (!response.ok) {
+        throw new Error("Failed to send email. Please try again.")
+      }
+
+      const result = await response.json()
+
+      if (!result.success) {
+        throw new Error(result.error || "Failed to send email")
       }
 
       // Store in localStorage for demo purposes (simulating CRM integration)
@@ -135,7 +268,7 @@ export default function LandingPage() {
       existingLeads.push(newLead)
       localStorage.setItem("dsx_leads", JSON.stringify(existingLeads))
 
-      console.log("Lead captured and email sent:", emailData)
+      console.log("Lead captured and email sent successfully")
 
       setFormSubmitted(true)
       setIsSubmitting(false)
@@ -386,137 +519,6 @@ export default function LandingPage() {
     </DialogContent>
   )
 
-  const LeadCaptureForm = () => (
-    <Dialog open={showLeadForm} onOpenChange={setShowLeadForm}>
-      <DialogContent className="max-w-md bg-background border-border">
-        <DialogHeader>
-          <DialogTitle className="text-foreground font-[family-name:var(--font-heading)]">
-            {formSubmitted ? "Thank You!" : "Get Started with DSX"}
-          </DialogTitle>
-        </DialogHeader>
-
-        {formSubmitted ? (
-          <div className="text-center space-y-4 py-8">
-            <CheckCircle className="h-16 w-16 text-primary mx-auto" />
-            <p className="text-muted-foreground">
-              We've received your information and will contact you within 24 hours to schedule your consultation.
-            </p>
-            <div className="text-sm text-muted-foreground">
-              A confirmation email has been sent to {leadFormData.email}
-            </div>
-          </div>
-        ) : (
-          <form onSubmit={handleLeadFormSubmit} className="space-y-4">
-            {submitError && (
-              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
-                <p className="text-sm text-destructive">{submitError}</p>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="name" className="text-foreground">
-                Full Name *
-              </Label>
-              <Input
-                id="name"
-                required
-                disabled={isSubmitting}
-                value={leadFormData.name}
-                onChange={(e) => setLeadFormData({ ...leadFormData, name: e.target.value })}
-                className="bg-background border-border text-foreground disabled:opacity-50"
-                placeholder="Your full name"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-foreground">
-                Email Address *
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                required
-                disabled={isSubmitting}
-                value={leadFormData.email}
-                onChange={(e) => setLeadFormData({ ...leadFormData, email: e.target.value })}
-                className="bg-background border-border text-foreground disabled:opacity-50"
-                placeholder="your@email.com"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="organization" className="text-foreground">
-                Organization Name *
-              </Label>
-              <Input
-                id="organization"
-                required
-                disabled={isSubmitting}
-                value={leadFormData.organization}
-                onChange={(e) => setLeadFormData({ ...leadFormData, organization: e.target.value })}
-                className="bg-background border-border text-foreground disabled:opacity-50"
-                placeholder="Your organization"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="organizationType" className="text-foreground">
-                Organization Type *
-              </Label>
-              <select
-                id="organizationType"
-                required
-                disabled={isSubmitting}
-                value={leadFormData.organizationType}
-                onChange={(e) => setLeadFormData({ ...leadFormData, organizationType: e.target.value })}
-                className="w-full px-3 py-2 bg-background border border-border rounded-md text-foreground disabled:opacity-50"
-              >
-                <option value="">Select type</option>
-                <option value="corporate">Corporate/Business</option>
-                <option value="ngo">NGO/Non-Profit</option>
-                <option value="government">Government/Public Sector</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="message" className="text-foreground">
-                Message (Optional)
-              </Label>
-              <Textarea
-                id="message"
-                disabled={isSubmitting}
-                value={leadFormData.message}
-                onChange={(e) => setLeadFormData({ ...leadFormData, message: e.target.value })}
-                className="bg-background border-border text-foreground disabled:opacity-50"
-                placeholder="Tell us about your budget management needs..."
-                rows={3}
-              />
-            </div>
-
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold disabled:opacity-50"
-            >
-              {isSubmitting ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground mr-2"></div>
-                  Sending...
-                </>
-              ) : (
-                <>
-                  <Send className="h-4 w-4 mr-2" />
-                  Send Information Request
-                </>
-              )}
-            </Button>
-          </form>
-        )}
-      </DialogContent>
-    </Dialog>
-  )
-
   return (
     <div className="min-h-screen bg-background">
       {/* Navigation - Simplified for consultative approach */}
@@ -524,10 +526,9 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center animate-glow">
-                <Calculator className="h-6 w-6 text-primary-foreground" />
+              <div className="text-2xl font-bold text-primary font-[family-name:var(--font-heading)] tracking-wider">
+                DSX
               </div>
-              <span className="text-xl font-bold text-foreground font-[family-name:var(--font-heading)]">DSX</span>
             </div>
 
             <div className="hidden md:flex items-center space-x-8">
@@ -1288,11 +1289,8 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-2 gap-8">
             {/* Company Info */}
             <div className="space-y-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-                  <Calculator className="h-6 w-6 text-primary-foreground" />
-                </div>
-                <span className="text-xl font-bold text-foreground font-[family-name:var(--font-heading)]">DSX</span>
+              <div className="text-2xl font-bold text-primary font-[family-name:var(--font-heading)] tracking-wider">
+                DSX
               </div>
               <p className="text-muted-foreground">
                 Transforming budget management with smart solutions that work for organizations of all sizes.
@@ -1305,7 +1303,7 @@ export default function LandingPage() {
               <div className="space-y-2 text-sm text-muted-foreground">
                 <p>Santo Domingo, Dominican Republic</p>
                 <p>contact@dsx-budget.com</p>
-                <p>+1 (809) 555-0123</p>
+                <p>+1 (849) 397-0258</p>
               </div>
             </div>
           </div>
@@ -1324,7 +1322,16 @@ export default function LandingPage() {
       <Dialog open={selectedExample !== null} onOpenChange={() => setSelectedExample(null)}>
         <BudgetExampleModal type="corporate" data={budgetExamples.corporate} />
       </Dialog>
-      <LeadCaptureForm />
+      <LeadCaptureForm
+        showLeadForm={showLeadForm}
+        setShowLeadForm={setShowLeadForm}
+        formSubmitted={formSubmitted}
+        leadFormData={leadFormData}
+        setLeadFormData={setLeadFormData}
+        handleLeadFormSubmit={handleLeadFormSubmit}
+        isSubmitting={isSubmitting}
+        submitError={submitError}
+      />
     </div>
   )
 }
